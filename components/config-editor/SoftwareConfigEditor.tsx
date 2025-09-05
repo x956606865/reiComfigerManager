@@ -26,6 +26,7 @@ export function SoftwareConfigEditor({ softwareId }: SoftwareConfigEditorProps) 
 
   useEffect(() => {
     loadSoftwareAndConfig()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [softwareId])
 
   const loadSoftwareAndConfig = async () => {
@@ -58,7 +59,6 @@ export function SoftwareConfigEditor({ softwareId }: SoftwareConfigEditorProps) 
         }
       } catch (err) {
         // Config might not exist yet, that's ok
-        console.log('No existing config found')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load configuration')
@@ -123,7 +123,7 @@ export function SoftwareConfigEditor({ softwareId }: SoftwareConfigEditorProps) 
     setHasUnsavedChanges(true)
   }
 
-  const handleVersionRestore = async (version: any) => {
+  const handleVersionRestore = async (_version: any) => {
     // Reload the config after restoration
     await loadSoftwareAndConfig()
     setHasUnsavedChanges(false)

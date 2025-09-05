@@ -208,8 +208,6 @@ export function PathEditor({ paths, onChange }: PathEditorProps) {
       {paths.map((path, index) => {
         const status = getPathStatus(path);
         const result = pathResults.get(path);
-        const isFirst = index === 0;
-        const isLast = index === paths.length - 1;
 
         return (
           <div
@@ -349,7 +347,7 @@ export function PathEditor({ paths, onChange }: PathEditorProps) {
                 handleDelete(contextMenu.index);
                 toast.success('Path deleted');
               },
-              variant: 'danger'
+              variant: 'danger' as const
             }
           ].flat()}
           position={contextMenu.position}

@@ -46,7 +46,7 @@ export function VersionHistory({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedVersion, setExpandedVersion] = useState<string | null>(null)
-  const [maxVersions, setMaxVersions] = useState<number>(20)
+  const [_maxVersions, setMaxVersions] = useState<number>(20)
   const [showSettings, setShowSettings] = useState(false)
   const [tempMaxVersions, setTempMaxVersions] = useState<number>(20)
   const [operationInProgress, setOperationInProgress] = useState<string | null>(null)
@@ -69,6 +69,7 @@ export function VersionHistory({
   useEffect(() => {
     loadVersionHistory()
     loadMaxVersions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [softwareId])
 
   const loadVersionHistory = async () => {

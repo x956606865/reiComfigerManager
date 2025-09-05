@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Edit2, Trash2, Copy, X } from 'lucide-react'
 
 interface ContextMenuItem {
   icon: React.ReactNode

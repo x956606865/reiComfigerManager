@@ -250,7 +250,6 @@ export const softwareDefinitions: SoftwareDefinition[] = [
           id: 'keymaps',
           title: 'Key Mappings',
           collapsible: true,
-          advanced: true,
           fields: [
             {
               key: 'leader',
@@ -548,7 +547,7 @@ export const softwareDefinitions: SoftwareDefinition[] = [
               options: [
                 { label: 'VS Code Icons', value: 'vscode-icons' },
                 { label: 'Material Icon Theme', value: 'material-icon-theme' },
-                { label: 'None', value: null }
+                { label: 'None', value: 'none' }
               ]
             },
             {

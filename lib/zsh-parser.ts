@@ -47,7 +47,7 @@ export function parseZshConfig(content: string): ZshConfig {
     
     const exportMatch = trimmedLine.match(exportPattern)
     if (exportMatch) {
-      const [fullMatch, key, value] = exportMatch
+      const [_fullMatch, key, value] = exportMatch
       
       // Extract the actual value, handling quoted strings properly
       let actualValue = value.trim()

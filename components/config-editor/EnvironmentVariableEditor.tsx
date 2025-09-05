@@ -4,15 +4,12 @@ import { useState, useMemo } from 'react'
 import {
   environmentVariablesKnowledge,
   getEnvVariableInfo,
-  searchVariables,
   getDefaultValue,
   validateValue,
-  getAllCategories,
   getSuggestedVariables,
 } from '@/lib/environment-variables-knowledge'
 import { Plus, Trash2, HelpCircle, Edit2, Copy, MoreVertical, Sparkles } from 'lucide-react'
 import { ContextMenu } from '@/components/ui/ContextMenu'
-import { EditModal } from '@/components/ui/EditModal'
 import { AutoCompleteInput, AutoCompleteSuggestion } from '@/components/ui/AutoCompleteInput'
 import { toast } from '@/lib/toast'
 import { VariableInfo } from '@/lib/zsh-parser'
@@ -36,7 +33,6 @@ export function EnvironmentVariableEditor({
   const [editingVar, setEditingVar] = useState<EditingVariable | null>(null)
   const [hoveredVar, setHoveredVar] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; key: string; value: string; position?: { x: number; y: number } }>({ isOpen: false, key: '', value: '' })
-  const [showingSuggestions, setShowingSuggestions] = useState(false)
   
   // Convert variable knowledge to autocomplete suggestions
   const autoCompleteSuggestions = useMemo((): AutoCompleteSuggestion[] => {

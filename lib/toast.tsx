@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 

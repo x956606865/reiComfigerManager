@@ -72,6 +72,14 @@ export function EnvironmentVariableEditor({
 
     const newVariables = { ...variables }
 
+    // Check for duplicate key (only for new variables or when renaming)
+    if ((!editingVar.originalKey || editingVar.originalKey !== data.key) && 
+        data.key in newVariables) {
+      if (!confirm(`Variable "${data.key}" already exists. Do you want to overwrite it?`)) {
+        return
+      }
+    }
+
     // If editing existing variable and key changed, delete old key
     if (editingVar.originalKey && editingVar.originalKey !== data.key) {
       delete newVariables[editingVar.originalKey]
@@ -130,7 +138,8 @@ export function EnvironmentVariableEditor({
             className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg group transition-colors cursor-pointer select-none ${isDisabled ? 'opacity-50' : ''}`}
             onMouseEnter={() => setHoveredVar(key)}
             onMouseLeave={() => setHoveredVar(null)}
-            onClick={(e) => {
+            onContextMenu={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               setContextMenu({
                 isOpen: true,

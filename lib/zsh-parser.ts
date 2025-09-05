@@ -46,8 +46,9 @@ export function parseZshConfig(content: string): ZshConfig {
       continue
     }
 
-    // Skip regular comments
+    // Store regular comments in otherLines to preserve them
     if (trimmedLine.startsWith('#')) {
+      config.otherLines.push(line) // Use original line to preserve indentation
       continue
     }
 
@@ -58,6 +59,82 @@ export function parseZshConfig(content: string): ZshConfig {
   return config
 }
 
+// Helper function to check if command separators exist outside of quotes
+function hasCommandSeparatorOutsideQuotes(line: string): boolean {
+  let inSingleQuote = false
+  let inDoubleQuote = false
+  let escaped = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+    
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    
+    if (char === '\\') {
+      escaped = true
+      continue
+    }
+    
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote
+    } else if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote
+    } else if (!inSingleQuote && !inDoubleQuote) {
+      // Check for separators only when outside quotes
+      if (char === ';') return true
+      if (char === '&' && nextChar === '&') return true
+      if (char === '|' && nextChar === '|') return true
+    }
+  }
+  
+  return false
+}
+
+// Helper function to split line at command separator (outside quotes)
+function splitAtSeparator(line: string): { main: string, suffix?: string } {
+  let inSingleQuote = false
+  let inDoubleQuote = false
+  let escaped = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+    
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    
+    if (char === '\\') {
+      escaped = true
+      continue
+    }
+    
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote
+    } else if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote
+    } else if (!inSingleQuote && !inDoubleQuote) {
+      // Found separator outside quotes
+      if (char === ';' || 
+          (char === '&' && nextChar === '&') || 
+          (char === '|' && nextChar === '|')) {
+        const separatorStart = i
+        return {
+          main: line.substring(0, separatorStart).trim(),
+          suffix: line.substring(separatorStart)
+        }
+      }
+    }
+  }
+  
+  return { main: line }
+}
+
 // Helper function to process a line
 function processLine(
   trimmedLine: string,
@@ -65,45 +142,19 @@ function processLine(
   existingPaths: Set<string>,
   isDisabled: boolean = false
 ) {
-
-    // Check if line contains command separators (&&, ||, ;)
-  const hasCommandSeparator = /&&|\|\||;/.test(trimmedLine)
+  // Check if line contains command separators (outside of quotes)
+  const hasCommandSeparator = hasCommandSeparatorOutsideQuotes(trimmedLine)
     
     // Parse export statements
-    // If line contains command separators, only match until the separator
-    const exportPattern = hasCommandSeparator 
-      ? /^export\s+([A-Z_][A-Z0-9_]*)=((?:[^&|;]|&&|\|\|)+?)(?:\s*(?:&&|\|\||;).*)?$/
-      : /^export\s+([A-Z_][A-Z0-9_]*)=(.*)$/
+    // Split at separator if present
+    const { main: exportLine, suffix } = hasCommandSeparator 
+      ? splitAtSeparator(trimmedLine)
+      : { main: trimmedLine, suffix: undefined }
     
-    const exportMatch = trimmedLine.match(exportPattern)
+    const exportMatch = exportLine.match(/^export\s+([A-Z_][A-Z0-9_]*)=(.*)$/)
     if (exportMatch) {
       const [_fullMatch, key, value] = exportMatch
-      
-      // Extract the actual value, handling quoted strings properly
-      let actualValue = value.trim()
-      
-      // If the value is quoted, extract only the quoted content
-      const quotedMatch = actualValue.match(/^(["'])(.*?)\1/)
-      if (quotedMatch) {
-        actualValue = quotedMatch[0] // Keep the quotes for unquote function
-      } else {
-        // For unquoted values, stop at command separator
-        const separatorMatch = actualValue.match(/(.*?)\s*(?:&&|\|\||;)/)
-        if (separatorMatch) {
-          actualValue = separatorMatch[1].trim()
-        }
-      }
-      
-      const cleanValue = unquote(actualValue)
-      
-      // Extract the suffix (commands after the variable assignment)
-      let suffix: string | undefined
-      if (hasCommandSeparator) {
-        const suffixMatch = trimmedLine.match(/^export\s+[A-Z_][A-Z0-9_]*=[^&|;]+?(\s*(?:&&|\|\||;).*)$/)
-        if (suffixMatch) {
-          suffix = suffixMatch[1]
-        }
-      }
+      const cleanValue = unquote(value.trim())
       
       // Special handling for PATH
       if (key === 'PATH') {
@@ -141,41 +192,19 @@ function processLine(
     }
 
     // Parse alias statements
-    // Check for command separators in alias lines too
-    const aliasHasSeparator = /&&|\|\||;/.test(trimmedLine)
-    const aliasPattern = aliasHasSeparator
-      ? /^alias\s+([a-zA-Z_][a-zA-Z0-9_]*)=((?:[^&|;]|&&|\|\|)+?)(?:\s*(?:&&|\|\||;).*)?$/
-      : /^alias\s+([a-zA-Z_][a-zA-Z0-9_]*)=(.*)$/
+    // Split at separator if present (reuse the same split from export check)
+    const aliasLine = hasCommandSeparator ? exportLine : trimmedLine
+    const aliasSuffix = hasCommandSeparator ? suffix : undefined
     
-    const aliasMatch = trimmedLine.match(aliasPattern)
+    const aliasMatch = aliasLine.match(/^alias\s+([a-zA-Z_][a-zA-Z0-9_]*)=(.*)$/)
     if (aliasMatch) {
       const [, name, value] = aliasMatch
-      
-      // Extract the actual value, handling quoted strings
-      let actualValue = value.trim()
-      const quotedMatch = actualValue.match(/^(["'])(.*?)\1/)
-      if (quotedMatch) {
-        actualValue = quotedMatch[0]
-      } else {
-        const separatorMatch = actualValue.match(/(.*?)\s*(?:&&|\|\||;)/)
-        if (separatorMatch) {
-          actualValue = separatorMatch[1].trim()
-        }
-      }
-      
-      // Extract suffix for aliases
-      let aliasSuffix: string | undefined
-      if (aliasHasSeparator) {
-        const suffixMatch = trimmedLine.match(/^alias\s+[a-zA-Z_][a-zA-Z0-9_]*=[^&|;]+?(\s*(?:&&|\|\||;).*)$/)
-        if (suffixMatch) {
-          aliasSuffix = suffixMatch[1]
-        }
-      }
+      const cleanValue = unquote(value.trim())
       
       // Store alias with suffix and disabled state if present
       config.aliases[name] = (aliasSuffix || isDisabled)
-        ? { value: unquote(actualValue), ...(aliasSuffix && { suffix: aliasSuffix }), ...(isDisabled && { disabled: true }) }
-        : unquote(actualValue)
+        ? { value: cleanValue, ...(aliasSuffix && { suffix: aliasSuffix }), ...(isDisabled && { disabled: true }) }
+        : cleanValue
       
       return
     }
@@ -199,9 +228,13 @@ function processLine(
       return
     }
 
-    // Store other lines (only if not processing disabled line)
+    // Store other lines
     if (!isDisabled) {
       config.otherLines.push(trimmedLine)
+    } else {
+      // If it's a disabled line that wasn't matched as export/alias,
+      // store it with the #[DISABLED] prefix
+      config.otherLines.push(`#[DISABLED] ${trimmedLine}`)
     }
 }
 

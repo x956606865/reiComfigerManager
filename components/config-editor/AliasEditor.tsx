@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Terminal } from 'lucide-react';
+import { Plus, Trash2, Edit2, Terminal, ToggleLeft, ToggleRight } from 'lucide-react';
 import { EditModal } from '@/components/ui/EditModal';
 import { VariableInfo } from '@/lib/zsh-parser';
 
@@ -61,6 +61,14 @@ export function AliasEditor({ aliases, onChange }: AliasEditorProps) {
 
     const newAliases = { ...aliases };
 
+    // Check for duplicate key (only for new aliases or when renaming)
+    if ((!editingAlias.originalName || editingAlias.originalName !== data.key) && 
+        data.key in newAliases) {
+      if (!confirm(`Alias "${data.key}" already exists. Do you want to overwrite it?`)) {
+        return;
+      }
+    }
+
     // If editing existing alias and name changed, delete old name
     if (editingAlias.originalName && editingAlias.originalName !== data.key) {
       delete newAliases[editingAlias.originalName];
@@ -89,6 +97,21 @@ export function AliasEditor({ aliases, onChange }: AliasEditorProps) {
     onChange(newAliases);
   };
 
+  const handleToggleDisabled = (name: string) => {
+    const newAliases = { ...aliases };
+    const currentAlias = newAliases[name];
+    
+    if (typeof currentAlias === 'string') {
+      // Convert to object format and set disabled
+      newAliases[name] = { value: currentAlias, disabled: true };
+    } else {
+      // Toggle disabled state
+      newAliases[name] = { ...currentAlias, disabled: !currentAlias.disabled };
+    }
+    
+    onChange(newAliases);
+  };
+
   const handleApplySuggestion = (suggestion: (typeof commonAliases)[0]) => {
     const newAliases = { ...aliases };
     newAliases[suggestion.name] = suggestion.command;
@@ -103,18 +126,20 @@ export function AliasEditor({ aliases, onChange }: AliasEditorProps) {
       {Object.entries(aliases).map(([name, commandOrInfo]) => {
         const command = typeof commandOrInfo === 'string' ? commandOrInfo : commandOrInfo.value;
         const suffix = typeof commandOrInfo === 'object' ? commandOrInfo.suffix : undefined;
+        const isDisabled = typeof commandOrInfo === 'object' ? commandOrInfo.disabled : false;
+        
         return (
         <div
           key={name}
-          className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded group"
+          className={`flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded group ${isDisabled ? 'opacity-50' : ''}`}
         >
           <Terminal className="h-4 w-4 text-gray-400" />
-          <span className="w-32 font-mono text-sm text-purple-600 dark:text-purple-400">
+          <span className={`w-32 font-mono text-sm text-purple-600 dark:text-purple-400 ${isDisabled ? 'line-through' : ''}`}>
             {name}
           </span>
           <span className="text-gray-500">=</span>
           <div className="flex-1 flex items-center gap-2">
-            <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
+            <span className={`font-mono text-sm text-gray-700 dark:text-gray-300 ${isDisabled ? 'line-through' : ''}`}>
               {command}
             </span>
             {suffix && (
@@ -130,12 +155,21 @@ export function AliasEditor({ aliases, onChange }: AliasEditorProps) {
                 handleEdit(name, cmd);
               }}
               className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+              title="Edit"
             >
               <Edit2 className="h-4 w-4" />
             </button>
             <button
+              onClick={() => handleToggleDisabled(name)}
+              className={`p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded ${isDisabled ? 'text-green-600' : 'text-orange-600'}`}
+              title={isDisabled ? 'Enable' : 'Disable'}
+            >
+              {isDisabled ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+            </button>
+            <button
               onClick={() => handleDelete(name)}
               className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+              title="Delete"
             >
               <Trash2 className="h-4 w-4" />
             </button>

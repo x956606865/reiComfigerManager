@@ -92,12 +92,12 @@ export function VersionHistory({
     setOperationInProgress(version.id)
     
     try {
-      // Get current configuration
-      const currentResult = await invoke<{ content: string } | null>('read_config', {
+      // Get current configuration using the recommended API
+      const configTuple = await invoke<[string, any] | null>('get_software_config', {
         softwareId
       })
       
-      const currentContent = currentResult?.content || ''
+      const currentContent = configTuple?.[0] || ''
       
       setDiffPreview({
         isOpen: true,

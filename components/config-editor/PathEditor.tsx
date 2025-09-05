@@ -213,7 +213,8 @@ export function PathEditor({ paths, onChange }: PathEditorProps) {
           <div
             key={index}
             className="p-3 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg group transition-colors cursor-pointer select-none"
-            onClick={(e) => {
+            onContextMenu={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setContextMenu({
                 isOpen: true,

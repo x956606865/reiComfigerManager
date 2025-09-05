@@ -8,7 +8,7 @@ import {
   validateValue,
   getSuggestedVariables,
 } from '@/lib/environment-variables-knowledge'
-import { Plus, Trash2, HelpCircle, Edit2, Copy, MoreVertical, Sparkles } from 'lucide-react'
+import { Plus, Trash2, HelpCircle, Edit2, Copy, MoreVertical, Sparkles, ToggleLeft, ToggleRight } from 'lucide-react'
 import { ContextMenu } from '@/components/ui/ContextMenu'
 import { AutoCompleteInput, AutoCompleteSuggestion } from '@/components/ui/AutoCompleteInput'
 import { toast } from '@/lib/toast'
@@ -100,18 +100,34 @@ export function EnvironmentVariableEditor({
     onChange(newVariables)
   }
 
+  const handleToggleDisabled = (key: string) => {
+    const newVariables = { ...variables }
+    const currentVar = newVariables[key]
+    
+    if (typeof currentVar === 'string') {
+      // Convert to object format and set disabled
+      newVariables[key] = { value: currentVar, disabled: true }
+    } else {
+      // Toggle disabled state
+      newVariables[key] = { ...currentVar, disabled: !currentVar.disabled }
+    }
+    
+    onChange(newVariables)
+  }
+
   return (
     <div className="space-y-2">
       {/* Existing variables */}
       {Object.entries(variables).map(([key, valueOrInfo]) => {
         const value = typeof valueOrInfo === 'string' ? valueOrInfo : valueOrInfo.value
         const suffix = typeof valueOrInfo === 'object' ? valueOrInfo.suffix : undefined
+        const isDisabled = typeof valueOrInfo === 'object' ? valueOrInfo.disabled : false
         const info = getEnvVariableInfo(key)
 
         return (
           <div
             key={key}
-            className="p-3 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg group transition-colors cursor-pointer select-none"
+            className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg group transition-colors cursor-pointer select-none ${isDisabled ? 'opacity-50' : ''}`}
             onMouseEnter={() => setHoveredVar(key)}
             onMouseLeave={() => setHoveredVar(null)}
             onClick={(e) => {
@@ -129,7 +145,7 @@ export function EnvironmentVariableEditor({
           >
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 flex-none w-32 sm:w-48">
-                <span className="font-mono text-sm text-blue-600 dark:text-blue-400 truncate" title={key}>
+                <span className={`font-mono text-sm text-blue-600 dark:text-blue-400 truncate ${isDisabled ? 'line-through' : ''}`} title={key}>
                   {key}
                 </span>
                 {info && (
@@ -165,7 +181,7 @@ export function EnvironmentVariableEditor({
               </div>
               <span className="text-gray-500 hidden sm:block">=</span>
               <div className="flex-1 flex items-center gap-2">
-                <span className="font-mono text-sm text-gray-700 dark:text-gray-300 truncate" title={value}>
+                <span className={`font-mono text-sm text-gray-700 dark:text-gray-300 truncate ${isDisabled ? 'line-through' : ''}`} title={value}>
                   {value}
                 </span>
                 {suffix && (
@@ -336,6 +352,24 @@ export function EnvironmentVariableEditor({
                 const varData = variables[contextMenu.key]
                 const value = typeof varData === 'string' ? varData : varData.value
                 handleEdit(contextMenu.key, value)
+              }
+            },
+            {
+              icon: (() => {
+                const varData = variables[contextMenu.key]
+                const isDisabled = typeof varData === 'object' && varData.disabled
+                return isDisabled ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />
+              })(),
+              label: (() => {
+                const varData = variables[contextMenu.key]
+                const isDisabled = typeof varData === 'object' && varData.disabled
+                return isDisabled ? 'Enable' : 'Disable'
+              })(),
+              action: () => {
+                handleToggleDisabled(contextMenu.key)
+                const varData = variables[contextMenu.key]
+                const isDisabled = typeof varData === 'object' && varData.disabled
+                toast.success(`${isDisabled ? 'Enabled' : 'Disabled'} ${contextMenu.key}`)
               }
             },
             {

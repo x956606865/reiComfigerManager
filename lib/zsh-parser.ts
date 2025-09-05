@@ -5,6 +5,7 @@
 export interface VariableInfo {
   value: string
   suffix?: string  // Commands after && || or ;
+  disabled?: boolean  // Whether the variable is disabled
 }
 
 export interface ZshConfig {
@@ -31,13 +32,42 @@ export function parseZshConfig(content: string): ZshConfig {
   for (const line of lines) {
     const trimmedLine = line.trim()
 
-    // Skip empty lines and comments
-    if (!trimmedLine || trimmedLine.startsWith('#')) {
+    // Skip empty lines
+    if (!trimmedLine) {
       continue
     }
 
+    // Check for disabled variables with #[DISABLED] marker
+    const disabledMatch = trimmedLine.match(/^#\[DISABLED\]\s+(.*)$/)
+    if (disabledMatch) {
+      const disabledContent = disabledMatch[1]
+      // Process the disabled line as if it were enabled, but mark as disabled
+      processLine(disabledContent, config, existingPaths, true)
+      continue
+    }
+
+    // Skip regular comments
+    if (trimmedLine.startsWith('#')) {
+      continue
+    }
+
+    // Process normal lines
+    processLine(trimmedLine, config, existingPaths, false)
+  }
+
+  return config
+}
+
+// Helper function to process a line
+function processLine(
+  trimmedLine: string,
+  config: ZshConfig,
+  existingPaths: Set<string>,
+  isDisabled: boolean = false
+) {
+
     // Check if line contains command separators (&&, ||, ;)
-    const hasCommandSeparator = /&&|\|\||;/.test(trimmedLine)
+  const hasCommandSeparator = /&&|\|\||;/.test(trimmedLine)
     
     // Parse export statements
     // If line contains command separators, only match until the separator
@@ -102,12 +132,12 @@ export function parseZshConfig(content: string): ZshConfig {
           }
         }
       } else {
-        // Store variable with suffix if present
-        config.environmentVariables[key] = suffix 
-          ? { value: cleanValue, suffix }
+        // Store variable with suffix and disabled state if present
+        config.environmentVariables[key] = (suffix || isDisabled)
+          ? { value: cleanValue, ...(suffix && { suffix }), ...(isDisabled && { disabled: true }) }
           : cleanValue
       }
-      continue
+      return
     }
 
     // Parse alias statements
@@ -142,12 +172,12 @@ export function parseZshConfig(content: string): ZshConfig {
         }
       }
       
-      // Store alias with suffix if present
-      config.aliases[name] = aliasSuffix
-        ? { value: unquote(actualValue), suffix: aliasSuffix }
+      // Store alias with suffix and disabled state if present
+      config.aliases[name] = (aliasSuffix || isDisabled)
+        ? { value: unquote(actualValue), ...(aliasSuffix && { suffix: aliasSuffix }), ...(isDisabled && { disabled: true }) }
         : unquote(actualValue)
       
-      continue
+      return
     }
 
     // Parse PATH additions without export
@@ -166,14 +196,13 @@ export function parseZshConfig(content: string): ZshConfig {
           }
         }
       }
-      continue
+      return
     }
 
-    // Store other lines
-    config.otherLines.push(line)
-  }
-
-  return config
+    // Store other lines (only if not processing disabled line)
+    if (!isDisabled) {
+      config.otherLines.push(trimmedLine)
+    }
 }
 
 /**
@@ -196,7 +225,12 @@ export function stringifyZshConfig(config: ZshConfig): string {
       } else {
         // Include suffix if present
         const line = `export ${key}="${escapeValue(valueOrInfo.value)}"${valueOrInfo.suffix || ''}`
-        lines.push(line)
+        // Add #[DISABLED] marker if variable is disabled
+        if (valueOrInfo.disabled) {
+          lines.push(`#[DISABLED] ${line}`)
+        } else {
+          lines.push(line)
+        }
       }
     }
     lines.push('')
@@ -219,7 +253,12 @@ export function stringifyZshConfig(config: ZshConfig): string {
       } else {
         // Include suffix if present
         const line = `alias ${name}="${escapeValue(commandOrInfo.value)}"${commandOrInfo.suffix || ''}`
-        lines.push(line)
+        // Add #[DISABLED] marker if alias is disabled
+        if (commandOrInfo.disabled) {
+          lines.push(`#[DISABLED] ${line}`)
+        } else {
+          lines.push(line)
+        }
       }
     }
     lines.push('')

@@ -184,10 +184,40 @@ set_max_versions(software_id, max_versions)
 4. 确保所有测试通过
 5. 更新相关文档
 
+## 代码质量标准
+
+### ESLint 配置
+项目使用 ESLint 与 TypeScript 集成，采用温和的规则策略：
+
+- **@typescript-eslint/recommended**: 基础 TypeScript 规则集
+- **未使用变量**: 警告级别，支持下划线前缀忽略
+- **React Hooks**: 依赖检查为警告级别
+- **类型安全**: 允许 any 类型但给出警告
+- **控制台输出**: 仅允许 console.warn 和 console.error
+
+### 开发命令
+```bash
+# 检查代码规范
+npm run lint
+
+# 自动修复可修复的问题
+npm run lint:fix
+
+# TypeScript 类型检查
+npm run typecheck
+```
+
+### 代码规范要求
+1. **TypeScript**: 启用严格模式 (strict: true)
+2. **导入管理**: 自动清理未使用的导入
+3. **命名规范**: 未使用但必需的参数使用下划线前缀
+4. **React**: 遵循 Hooks 规则和最佳实践
+5. **格式化**: 使用项目配置的格式化规则
+
 ## 技术债务
 
 ### 需要改进的地方
-1. 错误处理需要更加统一
+1. ~~错误处理需要更加统一~~ ✅ 已通过 ESLint 规范化
 2. 需要添加单元测试
 3. 部分组件需要优化性能
 4. 需要添加更多的日志记录
@@ -200,4 +230,4 @@ set_max_versions(software_id, max_versions)
 
 ---
 
-*最后更新: 2025-09-03*
+*最后更新: 2025-09-05*

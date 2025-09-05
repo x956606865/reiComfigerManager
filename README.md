@@ -29,12 +29,39 @@ npm install
 npm run tauri:dev
 ```
 
+### Development Scripts
+
+```bash
+# Run ESLint checks
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# TypeScript type checking
+npm run typecheck
+
+# Development server
+npm run dev
+
+# Build application
+npm run build
+```
+
 ### Build
 
 ```bash
 # Build for production
 npm run tauri:build
 ```
+
+### Code Quality
+
+This project uses ESLint with TypeScript support to maintain code quality:
+- Non-blocking warnings for common issues
+- Automatic cleanup of unused imports
+- TypeScript strict mode enabled
+- React hooks best practices enforced
 
 ## Architecture
 
